@@ -76,3 +76,27 @@ def get_document(document_id: int):
         )
 
     return document
+
+@app.delete("/documents/{document_id}")
+def delete_document(document_id: int):
+
+    db = SessionLocal()
+
+    document = (
+        db.query(Document)
+        .filter(Document.id == document_id)
+        .first()
+    )
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    db.delete(document)
+    db.commit()
+
+    return {
+        "message": "Document deleted"
+    }

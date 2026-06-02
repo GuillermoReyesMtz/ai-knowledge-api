@@ -1,4 +1,6 @@
 from sqlalchemy import Column, Integer, String
+from sqlalchemy import DateTime
+from datetime import datetime
 
 from app.database import Base
 
@@ -22,3 +24,8 @@ class Document(Base):
         String,
         nullable=False
     )
+
+    created_at = Column(
+    DateTime,
+    default=datetime.utcnow
+)
