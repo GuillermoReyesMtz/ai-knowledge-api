@@ -10,6 +10,11 @@ from app.schemas import DocumentCreate
 from app.models import Document
 from app.database import get_db
 
+from app.models import Document
+from app.database import SessionLocal
+
+from fastapi import HTTPException
+
 Base.metadata.create_all(
     bind=engine
 )
@@ -43,3 +48,31 @@ def create_document(
     db.refresh(new_document)
 
     return new_document
+
+@app.get("/documents")
+def get_documents():
+
+    db = SessionLocal()
+
+    documents = db.query(Document).all()
+
+    return documents
+
+@app.get("/documents/{document_id}")
+def get_document(document_id: int):
+
+    db = SessionLocal()
+
+    document = (
+        db.query(Document)
+        .filter(Document.id == document_id)
+        .first()
+    )
+
+    if not document:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found"
+        )
+
+    return document
