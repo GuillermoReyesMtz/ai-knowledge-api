@@ -1,22 +1,21 @@
 from fastapi import FastAPI
-
 from app.database import engine
 from app.models import Base
-
 from sqlalchemy.orm import Session
 from fastapi import Depends
-
 from app.schemas import DocumentCreate
+from app.schemas import DocumentResponse
 from app.models import Document
 from app.database import get_db
-
 from app.models import Document
 from app.database import SessionLocal
-
 from fastapi import HTTPException
-
 from app.services.scraper import scrape_url
 from app.schemas import ScrapeRequest
+from app.services.embedding_service import(
+    create_embedding,
+    cosine_similarity
+)
 
 Base.metadata.create_all(
     bind=engine
@@ -32,16 +31,24 @@ def root():
         "message": "AI Knowledge API running"
     }
 
-@app.post("/documents")
+@app.post("/documents",
+ response_model=DocumentResponse
+ )
+
 def create_document(
     document: DocumentCreate,
     db: Session = Depends(get_db)
 ):
 
+    embedding = create_embedding(
+        document.content
+    )
+
     new_document = Document(
 
         title=document.title,
-        content=document.content
+        content=document.content,
+        embedding=embedding.tolist()
     )
 
     db.add(new_document)
@@ -52,19 +59,23 @@ def create_document(
 
     return new_document
 
-@app.get("/documents")
-def get_documents():
-
-    db = SessionLocal()
+@app.get("/documents", 
+response_model=list[DocumentResponse]
+)
+def get_documents(
+    db: Session = Depends(get_db)
+    ):
 
     documents = db.query(Document).all()
 
     return documents
 
-@app.get("/documents/{document_id}")
-def get_document(document_id: int):
-
-    db = SessionLocal()
+@app.get("/documents/{document_id}", 
+response_model=DocumentResponse
+)
+def get_document(document_id: int, 
+db: Session = Depends(get_db)
+):
 
     document = (
         db.query(Document)
@@ -111,11 +122,16 @@ def scrape_document(payload: ScrapeRequest):
         payload.url
     )
 
+    embedding = create_embedding(
+        text
+    )
+
     db = SessionLocal()
 
     document = Document(
         title=payload.url,
-        content=text
+        content=text,
+        embedding=embedding.tolist()
     )
 
     db.add(document)
@@ -127,4 +143,42 @@ def scrape_document(payload: ScrapeRequest):
     return {
         "id": document.id,
         "message": "Document scraped"
+    }
+
+@app.get("/semantic-search")
+def semantic_search(
+    query: str,
+    db: Session = Depends(get_db)
+):
+
+    query_embedding = create_embedding(query)
+
+    documents = db.query(Document).all()
+
+    results = []
+
+    for document in documents:
+
+        if document.embedding is None:
+            continue
+
+        score = cosine_similarity(
+            query_embedding,
+            document.embedding
+        )
+
+        results.append({
+            "id": document.id,
+            "title": document.title,
+            "content": document.content,
+            "score": float(score)
+        })
+
+    results.sort(
+        key=lambda x: x["score"],
+        reverse=True
+    )
+
+    return {
+        "results": results[:5]
     }

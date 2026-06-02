@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy import DateTime
 from datetime import datetime
-
+from pgvector.sqlalchemy import Vector
 from app.database import Base
 
 
@@ -26,6 +26,10 @@ class Document(Base):
     )
 
     created_at = Column(
-    DateTime,
-    default=datetime.utcnow
-)
+        DateTime,
+        default=datetime.utcnow
+    )
+
+    embedding = Column(
+        Vector(384)
+    )

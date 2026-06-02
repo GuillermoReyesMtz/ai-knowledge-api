@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class DocumentCreate(BaseModel):
 
@@ -9,11 +10,12 @@ class DocumentCreate(BaseModel):
 class DocumentResponse(BaseModel):
 
     id: int
-    text: str
+    title: str
+    content: str
+    created_at: datetime
 
     class Config:
         from_attributes = True
 
 class ScrapeRequest(BaseModel):
     url: str
-    
