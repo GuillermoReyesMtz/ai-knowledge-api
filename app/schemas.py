@@ -13,3 +13,7 @@ class DocumentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ScrapeRequest(BaseModel):
+    url: str
+    

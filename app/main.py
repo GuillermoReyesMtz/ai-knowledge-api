@@ -15,6 +15,9 @@ from app.database import SessionLocal
 
 from fastapi import HTTPException
 
+from app.services.scraper import scrape_url
+from app.schemas import ScrapeRequest
+
 Base.metadata.create_all(
     bind=engine
 )
@@ -99,4 +102,29 @@ def delete_document(document_id: int):
 
     return {
         "message": "Document deleted"
+    }
+
+@app.post("/scrape")
+def scrape_document(payload: ScrapeRequest):
+
+    text = scrape_url(
+        payload.url
+    )
+
+    db = SessionLocal()
+
+    document = Document(
+        title=payload.url,
+        content=text
+    )
+
+    db.add(document)
+
+    db.commit()
+
+    db.refresh(document)
+
+    return {
+        "id": document.id,
+        "message": "Document scraped"
     }
